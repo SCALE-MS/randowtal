@@ -1,0 +1,6 @@
+radical.saga==1.5.2
+git+https://github.com/radical-cybertools/radical.utils.git@tmp/mt#egg=radical.utils
+radical.pilot==1.5.11
+git+https://github.com/radical-cybertools/radical.analytics.git@feature/ru-option#egg=radical.analytics
+scipy
+matplotlib

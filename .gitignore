@@ -1,0 +1,11 @@
+.idea/
+gmxapi-release-0_0_7/
+gromacs-2019.6.tar.gz
+gromacs-2019.6/
+input/mdout.mdp
+input/smFRET-tpr.tpr
+output/
+release-0_0_7.tar.gz
+/data/raw/
+/analysis/
+/radical.analytics.log
