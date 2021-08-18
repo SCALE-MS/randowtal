@@ -14,29 +14,33 @@
 
 # Reference https://portal.tacc.utexas.edu/tutorials/managingio#python
 #module load python_cacher
-$PROJECT/py37/bin/python -m pip list
-$PROJECT/py37/bin/python -c 'import run_brer; print("run_brer version:", run_brer.__version__)'
+. source_me.sh
+$VENV/bin/python -m pip list
+$VENV/bin/python -c 'import run_brer; print("run_brer version:", run_brer.__version__)'
 
-export PROJECT=${WORK2:-${HOME}/projects}/lccf
-export ROOT=${HOME}/projects/lccf_adaptive
 module list
+
+if [ -z "$ROOT" ]; then
+  echo "Need to set ROOT to the local repository dir."
+  exit 1
+fi
 
 umask 027
 cp $ROOT/workflow.py $SCRATCH/
-WORKDIR=$SCRATCH/brer-gmx2019-$SLURM_NTASKS
+WORKDIR=$SCRATCH/brer-gmx2021-$SLURM_NTASKS
 mkdir -p $WORKDIR
-rsync -uav $ROOT/input/smFRET-tpr.tpr $WORKDIR/
-rsync -uav $ROOT/input/pairs_loops.json $WORKDIR/
+rsync -uav $ROOT/input/hiv-deer/nosugar_ver116.tpr $WORKDIR/
+rsync -uav $ROOT/input/hiv-deer/pair_dist.json $WORKDIR/
 cd $WORKDIR || exit
 pwd
 ls
 date
 
 # Launch MPI code. Use ibrun instead of mpirun or mpiexec
-. $PROJECT/gromacs2019/bin/GMXRC
-ibrun $PROJECT/py37/bin/python -m mpi4py $SCRATCH/workflow.py \
-        --input=$WORKDIR/smFRET-tpr.tpr \
+. $PROJECT/gromacs2021/bin/GMXRC
+ibrun $VENV/bin/python -m mpi4py $SCRATCH/workflow.py \
+        --input=$WORKDIR/nosugar_ver116.tpr \
         --ensemble-size=$SLURM_NTASKS \
         --workdir=$WORKDIR \
         --threads-per-sim=$SLURM_CPUS_PER_TASK \
-        --pairs=$WORKDIR/pairs_loops.json
+        --pairs=$WORKDIR/pair_dist.json

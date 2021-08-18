@@ -1,4 +1,4 @@
-export PROJECT=${WORK2:-${HOME}/projects}/lccf
+export PROJECT=${WORK2}/lccf-brer-gmx2021
 mkdir -p $PROJECT
 
 # Establish build toolchain with default (Intel) modules.

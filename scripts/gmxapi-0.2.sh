@@ -1,4 +1,6 @@
 . $ROOT/scripts/common.sh
-. $PROJECT/py37/bin/activate
+. $VENV/bin/activate
 . $PROJECT/gromacs2021/bin/GMXRC
-pip install gmxapi
+pushd gromacs-2021-patch/python_packaging/src
+ pip install .
+popd
