@@ -12,11 +12,10 @@
 
 # Any other commands must follow all #SBATCH directives...
 
-# Reference https://portal.tacc.utexas.edu/tutorials/managingio#python
-#module load python_cacher
-. source_me.sh
-$VENV/bin/python -m pip list
-$VENV/bin/python -c 'import run_brer; print("run_brer version:", run_brer.__version__)'
+. modules.frontera
+. $WORK/venv/randowtal/bin/activate
+pip list
+python -c 'import run_brer; print("run_brer version:", run_brer.__version__)'
 
 module list
 
