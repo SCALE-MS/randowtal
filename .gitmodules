@@ -1,7 +1,7 @@
 [submodule "run_brer"]
 	path = external/run_brer
 	url = git@github.com:kassonlab/run_brer.git
-    branch = master
+	branch = master
 [submodule "brer_plugin"]
 	path = external/brer_plugin
 	url = git@github.com:kassonlab/brer_plugin.git
