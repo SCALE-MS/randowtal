@@ -9,13 +9,9 @@ Assume the repository is cloned to `$PROJECT`.
 
 `$PROJECT`/ contains some bash SLURM scripts and some Python workflow scripts.
 
-Additionally, `build-frontera.sh` prepares the complete project environment, using supporting scripts in `$PROJECT/scripts`.
-
-`$PROJECT/input` contains some GROMACS and BRER input files.
-
 `$PROJECT/external` contains some `git` submodules.
 
-Additional files and directories may be created in the repository by jobs or scripts, but most storage will target `$WORK2` or `$SCRATCH`.
+Additional files and directories may be created in the repository by jobs or scripts, but most storage will target `$WORK` or `$SCRATCH`.
 
 `git` submodules include
 * `run_brer` Python package
