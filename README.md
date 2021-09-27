@@ -175,26 +175,10 @@ We developed a RP-wrapped version of the workflow, architected as follows.
 
 ### mpi4py gmxapi ensemble management
 
-*WARNING: outdated section*
-
-Assuming
-* `$ROOT` is the base of this repo
-* the project has been set up as per `build-frontera.sh`
-* `N` is the number of MPI ranks (one per node)
-* `n` is the number of threads per simulation (cores per node)
-
-    mkdir $SCRATCH/brer-test-N
-    $PROJECT/py37/bin/python -m mpi4py $ROOT/workflow.py \
-        --input=$ROOT/input/smFRET-tpr.tpr \
-        --ensemble-size=N \
-        --workdir=$SCRATCH/brer-test-N \
-        --threads-per-sim=n \
-        --pairs=pairs_loops.json
-
-The above example is wrapped by `job_normal.sh`, which requires missing sbatch options to be provided on the command line.
+`job_normal.sh` illustrates a (non-RP) gmxapi brer job, which requires missing sbatch options to be provided on the command line.
 Example:
 
-    for N in 1 4 16 64 128 256; do sbatch -J brer2019_$N -N $N -n $N job_normal.sh ; done
+    for N in 4 16 64 128 256; do sbatch -J brer2021_$N -N $N -n $N job_normal.sh ; done
 
 ### RADICAL Pilot ensemble management
 
