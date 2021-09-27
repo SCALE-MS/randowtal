@@ -28,16 +28,15 @@ umask 027
 cp $ROOT/workflow.py $SCRATCH/
 WORKDIR=$SCRATCH/brer-gmx2021-$SLURM_NTASKS
 mkdir -p $WORKDIR
-rsync -uav $ROOT/input/hiv-deer/nosugar_ver116.tpr $WORKDIR/
-rsync -uav $ROOT/input/hiv-deer/pair_dist.json $WORKDIR/
+rsync -uav /home1/02634/eirrgang/projects/lccf_gmx2021-patched/input/hiv-deer/nosugar_ver116.tpr $WORKDIR/
+rsync -uav /home1/02634/eirrgang/projects/lccf_gmx2021-patched/input/hiv-deer/pair_dist.json $WORKDIR/
 cd $WORKDIR || exit
 pwd
 ls
 date
 
 # Launch MPI code. Use ibrun instead of mpirun or mpiexec
-. $PROJECT/gromacs2021/bin/GMXRC
-ibrun $VENV/bin/python -m mpi4py $SCRATCH/workflow.py \
+ibrun $VIRTUAL_ENV/bin/python -m mpi4py $SCRATCH/workflow.py \
         --input=$WORKDIR/nosugar_ver116.tpr \
         --ensemble-size=$SLURM_NTASKS \
         --workdir=$WORKDIR \
