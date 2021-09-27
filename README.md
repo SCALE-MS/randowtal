@@ -31,19 +31,56 @@ At least one Python `venv` and at least one GROMACS installation are needed.
 
 `build-frontera.sh` should just work, but should also be fairly self-explanatory on inspection.
 
+### Get access
+
+1. Contact Matteo for an account on the VM at `95.217.193.116` to get a shell account and a MongoDB database.
+1. Generate an ssh key pair (`ssh username@95.217.193.116 ssh-keygen`)
+1. Ask Matteo/Andre to add the public key to `authorized_keys` for `rpilot@frontera.tacc.utexas.edu`.
+1. Add `rpilot` to the Frontera allocation. Make sure that `rpilot@frontera` is a member of an appropriate group to get access to the software and data used by the scripts. *We're using group `G-821136`*
+1. Let `rpilot` be the default user id when connecting from the VM to frontera. Add this to your ~/.ssh/config:
+    ```
+    host frontera.tacc.utexas.edu
+       user = rpilot
+    ```
+    *Question: Why doesn't RP get this from the `rp.Context.user_id`?*
+
+### Set up the client-side workflow environment.
+Something like:
+```
+python3 -m pip ~/rp-venv
+. ~/rp-venv/bin/activate; pip install --upgrade pip setuptools wheel
+git clone git@github.com:SCALE-MS/scale-ms.git
+pip install -r scale-ms/requirements-testing.txt
+pip install -e scale-ms
+git clone git@github.com:SCALE-MS/randowtal.git
+```
+
+### Set up the execution environment
+
+On Frontera, the following assumes you did `export PROJECT=$HOME/projects/randowtal && mkdir -p $PROJECT` and that you are me.
+
+git clone git@github.com:SCALE-MS/randowtal.git
+
+... *tbd* ...
+
 ## Inputs
 
-Inputs include a TPR file and a JSON file (pairs data). Sources are stashed in the `input` directory.
-
-The TPR file is generated with
-
-    cd input
-    . $PROJECT/gromacs2021/bin/GMXRC  # See build-frontera.sh
-    gmx grompp -f smfret-md-params.mdp -c step5_production.gro -p loops-topol.top -o smFRET-tpr.tpr
+*tbd*
 
 ## Example
 
+Originally, our lccf jobs used solely mpi4py ensemble management in gmxapi, exhibiting the following call hierarchy.
+
+`job_normal.sh` -> `workflow.py` -> `import run_brer; ...`
+
+We developed a RP-wrapped version of the workflow, architected as follows.
+
+**Client side:** `clientdir/run_remote.sh` -> `rp-ensemble.py` -> `import radical.pilot as rp`
+
+**Execution side:** rp.Task: `brer_runner.py` -> `import run_brer; ...`
+
 ### mpi4py gmxapi ensemble management
+
 Assuming
 * `$ROOT` is the base of this repo
 * the project has been set up as per `build-frontera.sh`
@@ -65,6 +102,33 @@ Example:
 
 ### RADICAL Pilot ensemble management
 
-`rp-ensemble.py` is used to launch `brer_runner.py`.
+* When creating a `rp.Context`, set `context.user_id = 'rpilot'`
+* From the shell on the VM, start an ssh-agent, and add the key.
+  `eval "$(ssh-agent -s)" && ssh-add ~/.ssh/id_rsa`
+* Note the paths on the remote machine (frontera).
+* Launch `tmux`! RP does not provide a way to disconnect the client from the Pilot session.
+* Run the script to launch an rp Pilot as `rpilot@frontera`.
 
-See https://github.com/kassonlab/lccf_adaptive/wiki/RADICAL-Pilot#frontera-execution for more detail.
+```shell      
+export RADICAL_LOG_LVL=DEBUG
+INPUT=/home1/02634/eirrgang/projects/lccf_gmx2021-patched/input/hiv-deer/nosugar_ver116.tpr
+PAIRS=/home1/02634/eirrgang/projects/lccf_gmx2021-patched/input/hiv-deer/pair_dist.json
+HOURS=0.5
+SIZE=10
+python ../rp-ensemble.py \
+  --workers $SIZE \
+  --threads 56 \
+  --ensemble-size $SIZE \
+  --resource frontera \
+  --input $INPUT \
+  --pairs $PAIRS \
+  --walltime $HOURS \
+  --workdir /scratch1/02634/eirrgang/brer-rp-gmx2019-$SIZE \
+  --pre "module purge && module load intel/19.1.1 impi/19.0.9 git/2.24.1 autotools/1.2 python3/3.7.0 cmake/3.20.3 pmix/3.1.4 hwloc/1.11.12 xalt/2.10.13 TACC" \
+  --pre ". /work2/02634/eirrgang/frontera/lccf/gromacs2019/bin/GMXRC" \
+  --pre "umask 007" \
+  --task /home1/02634/eirrgang/projects/lccf_rp/brer_runner.py \
+  --python /work2/02634/eirrgang/frontera/lccf/py37/bin/python \
+  --project MCB20024
+```
+
