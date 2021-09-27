@@ -147,7 +147,13 @@ popd
 
 #### run_brer
 
-(cd external/run_brer && python setup.py install)
+`(cd external/run_brer && python setup.py install)`
+
+#### share
+
+`chmod -R 755 /work/02634/eirrgang/frontera/venv/`
+
+Now we can all use my venv.
 
 ## Inputs
 
