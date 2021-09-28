@@ -119,7 +119,7 @@ def default_resources() -> dict:
     # says "xsede.frontera" when actually "tacc.frontera" is what is defined.
     resources = {
         'frontera': dict(
-            default_db_url='mongodb://eirrgang:FHcg3sh3ryC5LqYn@129.114.17.185/scalems',
+            default_db_url='mongodb://eirrgang:vBzHZ3qNryfOUh8X@95.217.193.116:27017/scalems',
             cpus_per_node=56,
             pilot_description={
                 'resource': 'tacc.frontera',
@@ -127,7 +127,7 @@ def default_resources() -> dict:
             }
         ),
         'localhost': dict(
-            default_db_url='mongodb://eirrgang:FHcg3sh3ryC5LqYn@129.114.17.185/scalems',
+            default_db_url='mongodb://eirrgang:vBzHZ3qNryfOUh8X@95.217.193.116:27017/scalems',
             cpus_per_node=4,
             pilot_description={
                 'resource': 'local.localhost',
