@@ -51,12 +51,19 @@ args = parser.parse_args()
 
 if __name__ == '__main__':
     os.umask(0o007)
+    fast_run = {
+        'tolerance': 10000,
+        'num_samples': 2,
+        'sample_period': 0.001,
+        'production_time': 10000.}
     config_params = {
-        "tpr": os.path.abspath(args.input),
-        "ensemble_num": args.member,
-        "ensemble_dir": os.path.abspath(args.workdir),
-        "pairs_json": os.path.abspath(args.pairs)
+        'tpr': os.path.abspath(args.input),
+        'ensemble_num': args.member,
+        'ensemble_dir': os.path.abspath(args.workdir),
+        'pairs_json': os.path.abspath(args.pairs)
     }
+    config_params.update(fast_run)
+
     member_dir = os.path.join(os.path.abspath(args.workdir), f'mem_{args.member}')
     os.makedirs(member_dir, exist_ok=True)
 
@@ -65,7 +72,7 @@ if __name__ == '__main__':
         run_kwargs['threads'] = args.threads
 
     rc = RunConfig(**config_params)
-    rc.run_data.set(production_time=50000)  # sets production length to 50 ns
+    rc.run_data.set(production_time=100)  # sets production length to 100 ps
     rc.run_data.set(A=500)
 
     # Training phase.
