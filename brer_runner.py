@@ -72,19 +72,20 @@ if __name__ == '__main__':
         run_kwargs['threads'] = args.threads
 
     rc = RunConfig(**config_params)
-    rc.run_data.set(production_time=100)  # sets production length to 100 ps
+    if 'production_time' not in config_params:
+        rc.run_data.set(production_time=100)  # sets production length to 100 ps
     rc.run_data.set(A=500)
 
-    # Training phase.
     assert rc.run_data.get('iteration') == 0
-    assert rc.run_data.get('phase') == 'training'
 
-    rc.run(**run_kwargs)
+    # Training phase.
+    if rc.run_data.get('phase') == 'training':
+        rc.run(**run_kwargs)
 
     # Convergence phase.
-    assert rc.run_data.get('phase') == 'convergence'
-    rc.run(**run_kwargs)
+    if rc.run_data.get('phase') == 'convergence':
+        rc.run(**run_kwargs)
 
     # Production phase.
-    assert rc.run_data.get('phase') == 'production'
-    rc.run(**run_kwargs)
+    if rc.run_data.get('phase') == 'production':
+        rc.run(**run_kwargs)
