@@ -171,8 +171,8 @@ class RunTime:
             self._pilot_description = rp.PilotDescription(from_dict=pilot_description_dict)
         return self._pilot_description
 
-    def make_session(self) -> rp.Session:
-        session = rp.Session(dburl=self.db_url)
+    def make_session(self, **kwargs) -> rp.Session:
+        session = rp.Session(dburl=self.db_url, **kwargs)
 
         if getattr(self.pilot_description(), 'resource', 'localhost') == 'tacc.frontera':
             context = rp.Context('ssh')
@@ -181,8 +181,10 @@ class RunTime:
         return session
 
     @contextlib.contextmanager
-    def task_manager(self):
-        with self.make_session() as session:
+    def task_manager(self, session_args: dict = None):
+        if session_args is None:
+            session_args = {}
+        with self.make_session(**session_args) as session:
             pilot: typing.Optional[rp.Pilot] = None
             pilot_manager = None
             task_manager = None
@@ -286,7 +288,7 @@ if __name__ == '__main__':
                                 module='radical.pilot.db.database')
         warnings.filterwarnings('ignore', category=DeprecationWarning,
                                 module='radical.pilot.session')
-        with runtime.task_manager() as task_manager:
+        with runtime.task_manager(session_args={'download': True}) as task_manager:
             tasks = task_manager.submit_tasks(
                 descriptions=list(work.describe_tasks()))
 
