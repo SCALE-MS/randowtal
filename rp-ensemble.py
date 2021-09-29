@@ -160,7 +160,8 @@ class RunTime:
 
     def pilot_description(self) -> rp.PilotDescription:
         if self._pilot_description is None:
-            minutes = self.walltime_hours * 60
+            grace_period = 5.0  # minutes to allow for clean shut down.
+            minutes = self.walltime_hours * 60 - grace_period
             pilot_description_dict = {
                 'runtime': minutes,
                 'cores': self.cores
