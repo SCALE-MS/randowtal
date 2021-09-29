@@ -47,9 +47,13 @@ parser.add_argument(
     help='(Optional) Number of CPUs to use for this BRER simulation.'
 )
 args = parser.parse_args()
+run_kwargs = {}
+if args.threads:
+    run_kwargs['threads'] = args.threads
 
 
-if __name__ == '__main__':
+def get_rc():
+
     os.umask(0o007)
     fast_run = {
         'tolerance': 10000,
@@ -66,10 +70,6 @@ if __name__ == '__main__':
     member_dir = os.path.join(os.path.abspath(args.workdir), f'mem_{args.member}')
     os.makedirs(member_dir, exist_ok=True)
 
-    run_kwargs = {}
-    if args.threads:
-        run_kwargs['threads'] = args.threads
-
     rc = RunConfig(**config_params)
     for key, value in fast_run.items():
         rc.run_data.set(**{key: value})
@@ -77,16 +77,31 @@ if __name__ == '__main__':
         rc.run_data.set(production_time=100)  # sets production length to 100 ps
     rc.run_data.set(A=500)
 
-    assert rc.run_data.get('iteration') == 0
 
+def run_training(rc):
     # Training phase.
+    assert rc.run_data.get('iteration') == 0
     if rc.run_data.get('phase') == 'training':
         rc.run(**run_kwargs)
 
+
+def run_convergence(rc):
     # Convergence phase.
     if rc.run_data.get('phase') == 'convergence':
         rc.run(**run_kwargs)
 
+
+def run_production(rc):
     # Production phase.
     if rc.run_data.get('phase') == 'production':
         rc.run(**run_kwargs)
+
+
+if __name__ == '__main__':
+
+    rc = get_rc()
+    run_training(rc)
+    run_convergence(rc)
+    run_production(rc)
+
+
