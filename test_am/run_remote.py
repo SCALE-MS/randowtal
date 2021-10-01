@@ -1,24 +1,10 @@
 #!/usr/bin/env python3
 
-"""RADICAL Pilot job script for ensemble of BRER simulations.
-
-RP scripts are executed _instead of_ a SLURM job script and take care of
-job submission on behalf of the user.
-
-This script manages a RADICAL Pilot session for submitting tasks based on the
-`brer_runner.py` executable script.
-"""
-
-import argparse
-import contextlib
-import os
-import pathlib
-import warnings
-
-from typing import List, Dict, Any, Tuple, Optional
+import json
 
 import radical.pilot as rp
 import radical.utils as ru
+
 
 BASE    = "/home1/02634/eirrgang/"
 SCRATCH = "/scratch1/02634/eirrgang/"
@@ -200,7 +186,7 @@ class RunTime:
                 'git+https://github.com/SCALE-MS/run_brer.git@master',
                 'git+https://github.com/radical-cybertools/radical.pilot.git'
                          + '@project/scalems',
-                'gmxapi'
+              # 'gmxapi'
         ]
         pre_exec = self._resource.master.pre_exec
 
@@ -231,6 +217,7 @@ class RunTime:
 
         # TODO: stage input data
         td = rp.TaskDescription(self._resource.master)
+        td.uid            = 'brer_master'
         td.named_env      = self._resource.named_env
         td.executable     = './brer_master.py'
         td.cpu_threads    = self._resource.cores_per_node
@@ -240,7 +227,18 @@ class RunTime:
                              'config.json']
 
         self._master = self._tmgr.submit_tasks(td)
-        self._master.wait()
+        self._master.wait(state=[rp.AGENT_EXECUTING])
+
+        td = rp.TaskDescription()
+        td.uid            = 'brer_workload'
+        td.named_env      = self._resource.named_env
+        td.executable     = '-'
+        td.scheduler      = 'brer_master'
+        td.cpu_threads    = self._resource.cores_per_node
+        td.arguments      = [json.dumps(workload.as_dict())]
+        self._work = self._tmgr.submit_tasks(td)
+
+        self._tmgr.wait_tasks()
 
 
 # ------------------------------------------------------------------------------

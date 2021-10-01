@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# pylint: disable=redefined-outer-name
 
 import os
 import sys
+import copy
+import json
 
 import radical.utils as ru
 import radical.pilot as rp
@@ -47,6 +48,11 @@ class BrerMaster(rp.raptor.Master):
         td.executable  = './brer_worker.py'
         td.sandbox     = os.getcwd()
 
+        self._dependencies = dict()
+        self._submitted    = 0
+        self._completed    = 0
+        self._workloads    = list()
+
         self._log.debug('=== start worker')
         self.submit(descr=td, count=self._workload.n_workers, cores=cpw, gpus=0)
 
@@ -55,48 +61,7 @@ class BrerMaster(rp.raptor.Master):
     #
     def submit_tasks(self):
 
-        self._prof.prof('submit_start')
-
-        ensemble_size = self._workload.ensemble_size
-        input         = self._workload.input
-        pairs         = self._workload.pairs
-        workdir       = self._cfg.workdir
-
-        for idx in range(ensemble_size):
-
-            for stage in ['training', 'convergence', 'production']:
-
-                uid  = 'request.%s.%06d' % (stage, idx)
-                item = {'uid'  :   uid,
-                        'mode' :  'call',
-                        'cores':  self._resource.cores_per_node,
-                        'data' : {'method': stage,
-                                  'kwargs': {'member' : idx,
-                                             'workdir': workdir,
-                                             'input'  : input,
-                                             'pairs'  : pairs}}}
-                self.request(item)
-
-                # TODO: move output staging to master, needs stage_on_error
-              # task_description.output_staging = [
-              #     {
-              #         'source': f'task:///{task_description.stdout}',
-              #         'target': 'client:///',
-              #         'action': rp.TRANSFER
-              #     },
-              #     {
-              #         'source': f'task:///{task_description.stderr}',
-              #         'target': 'client:///',
-              #         'action': rp.TRANSFER
-              #     },
-              #     {
-              #         'source': f'task:///brer{idx}.log',
-              #         'target': f'client:///brer{self.ensemble_size}_mem_{member}.log',
-              #         'action': rp.TRANSFER
-              #     },
-              # ]
-
-        self._prof.prof('submit_stop')
+        assert(False)
 
 
     # --------------------------------------------------------------------------
@@ -105,18 +70,74 @@ class BrerMaster(rp.raptor.Master):
 
         for req in requests:
 
+            args     = req['task']['description']['arguments']
+            workload = ru.Config(cfg=json.loads(args[0]))
+
             self._log.debug('=== request_cb %s\n' % (req['uid']))
 
-        # return the original request for execution
-        return requests
+            ensemble_size = workload.ensemble_size
+            input         = workload.input
+            pairs         = workload.pairs
+            workdir       = self._cfg.workdir
+
+            for idx in range(ensemble_size):
+
+                uid  = 'request.%06d' % idx
+                item = {'uid'  :  uid,
+                        'mode' :  'call',
+                        'cores':  self._resource.cores_per_node,
+                        'data' : {'method': 'brer_run',
+                                  'kwargs': {'stage'  : 'training',
+                                             'member' : idx,
+                                             'workdir': workdir,
+                                             'input'  : input,
+                                             'pairs'  : pairs}}}
+
+                req_training    = copy.deepcopy(item)
+                req_convergence = copy.deepcopy(item)
+                req_production  = copy.deepcopy(item)
+
+                req_training['uid']    = uid + '.training'
+                req_convergence['uid'] = uid + '.convergence'
+                req_production['uid']  = uid + '.production'
+
+                req_training['data']['kwargs']['stage']    = 'training'
+                req_convergence['data']['kwargs']['stage'] = 'convergence'
+                req_production['data']['kwargs']['stage']  = 'production'
+
+                self._dependencies[req_training['uid']]    = req_convergence
+                self._dependencies[req_convergence['uid']] = req_production
+
+                self._log.debug('=== submit task %s\n', req_training['uid'])
+                self.request(req_training)
+                self._submitted += 1
+
+                self._workloads.append(req)
 
 
     # --------------------------------------------------------------------------
     #
     def result_cb(self, req):
 
-        self._log.debug('=== result_cb  %s: %s [%s]\n'
-                       % (req.uid, req.state, req.result))
+        self._log.debug('=== result_cb  %s: %s [%s]',
+                        req.uid, req.state, req.result)
+        self._completed += 1
+
+        if req.uid in self._dependencies:
+            dep = self._dependencies[req.uid]
+            self._log.debug('=== submit dep  %s', dep['uid'])
+            self.request(dep)
+            self._submitted += 1
+
+        if self._submitted == self._completed:
+            # we are done, not more workloads to wait for - return the tasks
+            # and terminate
+            for req in self._workloads:
+                req['task']['target_state'] = rp.DONE
+                self.advance(req['task'], rp.AGENT_STAGING_OUTPUT_PENDING,
+                                       publish=True, push=True)
+
+            self.stop()
 
 
 # ------------------------------------------------------------------------------
@@ -127,7 +148,7 @@ if __name__ == '__main__':
     master = BrerMaster(cfg)
 
     master.start()
-    master.submit_tasks()
+  # master.submit_tasks()
     master.join()
     master.stop()
 
