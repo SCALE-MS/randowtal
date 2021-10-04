@@ -79,7 +79,7 @@ class BrerMaster(rp.raptor.Master):
             ensemble_size = workload.ensemble_size
             input         = workload.input
             pairs         = workload.pairs
-            workdir       = self._cfg.workdir
+            workdir       = self._cfg.config.workdir
 
             for idx in range(ensemble_size):
 
