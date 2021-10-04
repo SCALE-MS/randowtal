@@ -28,9 +28,6 @@ class BrerWorker(rp.raptor.Worker):
                        input  : str,
                        pairs  : str) -> str:
 
-        print('got work: %s - %s - %s - %s - %s' % (stage, member, workdir,
-            input, pairs))
-
         uid = os.environ['RP_TASK_ID'] + '.' + stage
         self._prof.prof('app_start', uid=uid)
 
@@ -54,14 +51,10 @@ class BrerWorker(rp.raptor.Worker):
         for key, value in fast_run.items():
             rc.run_data.set(**{key: value})
         if 'production_time' not in config_params:
-            rc.run_data.set(production_time=100)  # sets production length to 100 ps
+            rc.run_data.set(production_time=1)  # production length: 100 ps
         rc.run_data.set(A=500)
+        rc.run(threads=self._cfg.resource.cores_per_node)
 
-        # Training phase.
-      # assert rc.run_data.get('iteration') == 0
-        if rc.run_data.get('phase') == 'training':
-            # FIXME: thread num
-            rc.run(threads=56)
         self._prof.prof('app_stop', uid=uid)
 
 

@@ -60,13 +60,6 @@ class BrerMaster(rp.raptor.Master):
 
     # --------------------------------------------------------------------------
     #
-    def submit_tasks(self):
-
-        assert(False)
-
-
-    # --------------------------------------------------------------------------
-    #
     def request_cb(self, requests):
 
         for req in requests:
@@ -149,11 +142,8 @@ if __name__ == '__main__':
     master = BrerMaster(cfg)
 
     master.start()
-  # master.submit_tasks()
     master.join()
     master.stop()
-
-    # FIXME: clean up workers
 
 
 # ------------------------------------------------------------------------------

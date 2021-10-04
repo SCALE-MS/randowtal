@@ -66,7 +66,7 @@ resources = {'frontera' : {
 
 # ------------------------------------------------------------------------------
 #
-class RunTime:
+class RunTime(object):
     """Configure and manage the runtime environment."""
 
     # --------------------------------------------------------------------------
