@@ -43,9 +43,10 @@ class BrerMaster(rp.raptor.Master):
         cpw = int(self._resource.cores_per_node /
                   self._workload.workers_per_node)
         td  = rp.TaskDescription(self._resource.worker)
-        td.named_env   = self._resource.named_env
+     #  td.named_env   = self._resource.named_env
         td.cpu_threads = cpw
         td.executable  = './brer_worker.py'
+        td.pre_exec    = self._resource.pre_exec
         td.sandbox     = os.getcwd()
 
         self._dependencies = dict()

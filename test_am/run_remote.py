@@ -26,7 +26,7 @@ workload  = {
             }
 
 config    = {
-             'resource'        : 'localhost',
+             'resource'        : 'frontera',
              'walltime'        : HOURS,
              'workdir'         : SCRATCH + '/randowtal/brer-rp-gmx2021-' + SIZE,
             }
@@ -38,24 +38,23 @@ resources = {'frontera' : {
                             'project'       : 'MCB20024',
                             'queue'         : 'development',
                            },
-                 'master': {'pre_exec': ['umask 007',
-                                         'module unload python3',
-                                         'module unload impi',
-                                         'module unload intel',
-                                         'module load   gcc',
-                                         'module load   impi',
-                                         'module load   python3',
-                                         '. %s/bin/GMXRC' % GMX_LOC,
-                                         ]},
-                 'worker': {'pre_exec': ['umask 007',
-                                         'module unload python3',
-                                         'module unload impi',
-                                         'module unload intel',
-                                         'module load   gcc',
-                                         'module load   impi',
-                                         'module load   python3',
-                                         '. %s/bin/GMXRC' % GMX_LOC,
-                                         ]}},
+                 'pre_exec': [
+                     '. /home1/07305/rpilot/am/.bashrc',
+                     '. /scratch1/07305/rpilot/radical.pilot.sandbox/ve.scalems/bin/activate',
+                     'module list'
+                     ],
+               # 'pre_exec': ['umask 007',
+               #              'module unload python3',
+               #              'module unload impi',
+               #              'module unload intel',
+               #              'module load   gcc',
+               #              'module load   impi',
+               #              'module load   python3',
+               #              'module list',
+               #              '. %s/bin/GMXRC' % GMX_LOC],
+                 'master': {},
+                 'worker': {}
+             },
              'localhost': {
                  'cores_per_node': 4,
                  'pilot' : {'resource'      : 'local.localhost',
@@ -188,17 +187,15 @@ class RunTime:
                          + '@project/scalems',
               # 'gmxapi'
         ]
-        pre_exec = self._resource.master.pre_exec
 
-        # NOTE: this will block until pilot is alive and venv exists
-        # TODO: pre_exec
-        self._pilot.prepare_env(env_name='ve_brer',
-                                env_spec={'type'    : 'virtualenv',
-                                          'version' : '3.8',
-                                          'pre_exec': pre_exec,
-                                          'setup'   : modules})
-
-        self._resource.named_env = 've_brer'
+      # # NOTE: this will block until pilot is alive and venv exists
+      # self._pilot.prepare_env(env_name='ve_brer',
+      #                         env_spec={'type'    : 'virtualenv',
+      #                                   'version' : '3.8',
+      #                                   'pre_exec': self._resource.pre_exec,
+      #                                   'setup'   : modules})
+      #
+      # self._resource.named_env = 've_brer'
 
 
     # --------------------------------------------------------------------------
@@ -215,11 +212,12 @@ class RunTime:
                 'config'  : self._cfg}
         ru.write_json(master_cfg, './config.json')
 
-        # TODO: stage input data
+        # submit master
         td = rp.TaskDescription(self._resource.master)
         td.uid            = 'brer_master'
-        td.named_env      = self._resource.named_env
+      # td.named_env      = self._resource.named_env
         td.executable     = './brer_master.py'
+        td.pre_exec       = self._resource.pre_exec
         td.cpu_threads    = self._resource.cores_per_node
         td.arguments      = ['config.json']
         td.input_staging  = ['brer_master.py',
@@ -229,9 +227,10 @@ class RunTime:
         self._master = self._tmgr.submit_tasks(td)
         self._master.wait(state=[rp.AGENT_EXECUTING])
 
+        # submit workload as task to the master (`scheduler`)
         td = rp.TaskDescription()
         td.uid            = 'brer_workload'
-        td.named_env      = self._resource.named_env
+      # td.named_env      = self._resource.named_env
         td.executable     = '-'
         td.scheduler      = 'brer_master'
         td.cpu_threads    = self._resource.cores_per_node
