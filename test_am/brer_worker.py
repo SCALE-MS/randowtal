@@ -28,8 +28,8 @@ class BrerWorker(rp.raptor.Worker):
                        input  : str,
                        pairs  : str) -> str:
 
-        uid = os.environ['RP_TASK_ID'] + '.' + stage
-        self._prof.prof('app_start', uid=uid)
+        uid = os.environ['RP_TASK_ID']
+        self._prof.prof('app_%s_start' % stage, uid=uid)
 
         os.umask(0o007)
         fast_run = {
@@ -55,7 +55,7 @@ class BrerWorker(rp.raptor.Worker):
         rc.run_data.set(A=500)
         rc.run(threads=self._cfg.resource.cores_per_node)
 
-        self._prof.prof('app_stop', uid=uid)
+        self._prof.prof('app_%s_stop' % stage, uid=uid)
 
 
 # ------------------------------------------------------------------------------

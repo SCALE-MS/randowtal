@@ -79,8 +79,8 @@ class RunTime(object):
         self._master  = None
         self._pilot   = None
 
-        self._log     = ru.Logger('brer.runner', level='DEBUG',
-                                                 targets=['.', '-'])
+        self._lock = ru.Lock()
+        self._log  = ru.Logger('brer.runner', level='DEBUG', targets=['.', '-'])
 
         self._resource_label = cfg.get('resource', 'localhost')
         self._resource       = ru.Config(cfg=resources[self._resource_label])
@@ -98,9 +98,10 @@ class RunTime(object):
     def stop(self) -> None:
 
         if self._session:
-            try   : self._session.close(download=True)
-            except: pass
-            self._session = None
+            with self._lock:
+                try   : self._session.close(download=True)
+                except: pass
+                self._session = None
 
 
     # --------------------------------------------------------------------------
@@ -124,7 +125,7 @@ class RunTime(object):
             self.stop()
 
         elif pilot.state == rp.DONE:
-            self._log.error('run context completed')
+            self._log.info('run context completed')
             self.stop()
 
 
@@ -149,7 +150,7 @@ class RunTime(object):
             self.stop()
 
         elif task.state == rp.DONE:
-            self._log.error('workload completed')
+            self._log.info('workload completed')
             self.stop()
 
 
@@ -214,7 +215,7 @@ class RunTime(object):
 
         # submit master
         td = rp.TaskDescription(self._resource.master)
-        td.uid            = 'brer_master'
+        td.uid            = 'master.0000'
       # td.named_env      = self._resource.named_env
         td.executable     = './brer_master.py'
         td.pre_exec       = self._resource.pre_exec
@@ -229,10 +230,10 @@ class RunTime(object):
 
         # submit workload as task to the master (`scheduler`)
         td = rp.TaskDescription()
-        td.uid            = 'brer_workload'
+        td.uid            = 'workload.0000'
       # td.named_env      = self._resource.named_env
         td.executable     = '-'
-        td.scheduler      = 'brer_master'
+        td.scheduler      = 'master.0000'
         td.cpu_threads    = self._resource.cores_per_node
         td.arguments      = [json.dumps(workload.as_dict())]
         self._work = self._tmgr.submit_tasks(td)
