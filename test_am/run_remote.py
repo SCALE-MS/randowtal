@@ -39,19 +39,14 @@ resources = {'frontera' : {
                             'queue'         : 'development',
                            },
                  'pre_exec': [
-                     '. /home1/07305/rpilot/am/.bashrc',
-                     '. /scratch1/07305/rpilot/radical.pilot.sandbox/ve.scalems/bin/activate',
-                     'module list'
-                     ],
-               # 'pre_exec': ['umask 007',
-               #              'module unload python3',
-               #              'module unload impi',
-               #              'module unload intel',
-               #              'module load   gcc',
-               #              'module load   impi',
-               #              'module load   python3',
-               #              'module list',
-               #              '. %s/bin/GMXRC' % GMX_LOC],
+                     'umask 007',
+                     'module unload python3',
+                     'module unload impi',
+                     'module unload intel',
+                     'module load   gcc',
+                     'module load   impi',
+                     'module load   python3',
+                     '. %s/bin/GMXRC' % GMX_LOC],
                  'master': {},
                  'worker': {}
              },
@@ -186,17 +181,17 @@ class RunTime(object):
                 'git+https://github.com/SCALE-MS/run_brer.git@master',
                 'git+https://github.com/radical-cybertools/radical.pilot.git'
                          + '@project/scalems',
-              # 'gmxapi'
+                'gmxapi'
         ]
 
-      # # NOTE: this will block until pilot is alive and venv exists
-      # self._pilot.prepare_env(env_name='ve_brer',
-      #                         env_spec={'type'    : 'virtualenv',
-      #                                   'version' : '3.8',
-      #                                   'pre_exec': self._resource.pre_exec,
-      #                                   'setup'   : modules})
-      #
-      # self._resource.named_env = 've_brer'
+        # NOTE: this will block until pilot is alive and venv exists
+        self._pilot.prepare_env(env_name='ve_brer',
+                                env_spec={'type'    : 'virtualenv',
+                                          'version' : '3.8',
+                                          'pre_exec': self._resource.pre_exec,
+                                          'setup'   : modules})
+
+        self._resource.named_env = 've_brer'
 
 
     # --------------------------------------------------------------------------
@@ -216,9 +211,8 @@ class RunTime(object):
         # submit master
         td = rp.TaskDescription(self._resource.master)
         td.uid            = 'master.0000'
-      # td.named_env      = self._resource.named_env
+        td.named_env      = self._resource.named_env
         td.executable     = './brer_master.py'
-        td.pre_exec       = self._resource.pre_exec
         td.cpu_threads    = self._resource.cores_per_node
         td.arguments      = ['config.json']
         td.input_staging  = ['brer_master.py',
@@ -231,7 +225,7 @@ class RunTime(object):
         # submit workload as task to the master (`scheduler`)
         td = rp.TaskDescription()
         td.uid            = 'workload.0000'
-      # td.named_env      = self._resource.named_env
+        td.named_env      = self._resource.named_env
         td.executable     = '-'
         td.scheduler      = 'master.0000'
         td.cpu_threads    = self._resource.cores_per_node
