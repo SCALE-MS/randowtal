@@ -110,6 +110,7 @@ class BrerMaster(rp.raptor.Master):
 
                 self._log.debug('=== submit task %s\n', req_training['uid'])
                 self.request(req_training)
+                self._prof.prof('req_put', uid=req_training['uid'])
                 self._submitted += 1
 
                 self._workloads.append(req)
@@ -119,6 +120,7 @@ class BrerMaster(rp.raptor.Master):
     #
     def result_cb(self, req):
 
+        self._prof.prof('req_get', uid=req.uid)
         self._log.debug('=== result_cb  %s: %s [%s]',
                         req.uid, req.state, req.result)
         self._completed += 1
@@ -133,6 +135,7 @@ class BrerMaster(rp.raptor.Master):
             # we are done, not more workloads to wait for - return the tasks
             # and terminate
             for req in self._workloads:
+                # TODO: create raptor method
                 req['task']['target_state'] = rp.DONE
                 self.advance(req['task'], rp.AGENT_STAGING_OUTPUT_PENDING,
                                        publish=True, push=True)
