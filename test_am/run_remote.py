@@ -26,7 +26,7 @@ workload  = {
             }
 
 config    = {
-             'resource'        : 'localhost',
+             'resource'        : 'frontera',
              'walltime'        : HOURS,
              'workdir'         : SCRATCH + '/randowtal/brer-rp-gmx2021-' + SIZE,
             }
@@ -38,24 +38,18 @@ resources = {'frontera' : {
                             'project'       : 'MCB20024',
                             'queue'         : 'development',
                            },
-                 'master': {'pre_exec': ['umask 007',
-                                         'module unload python3',
-                                         'module unload impi',
-                                         'module unload intel',
-                                         'module load   gcc',
-                                         'module load   impi',
-                                         'module load   python3',
-                                         '. %s/bin/GMXRC' % GMX_LOC,
-                                         ]},
-                 'worker': {'pre_exec': ['umask 007',
-                                         'module unload python3',
-                                         'module unload impi',
-                                         'module unload intel',
-                                         'module load   gcc',
-                                         'module load   impi',
-                                         'module load   python3',
-                                         '. %s/bin/GMXRC' % GMX_LOC,
-                                         ]}},
+                 'pre_exec': [
+                     'umask 007',
+                     'module unload python3',
+                     'module unload impi',
+                     'module unload intel',
+                     'module load   gcc',
+                     'module load   impi',
+                     'module load   python3',
+                     '. %s/bin/GMXRC' % GMX_LOC],
+                 'master': {},
+                 'worker': {}
+             },
              'localhost': {
                  'cores_per_node': 4,
                  'pilot' : {'resource'      : 'local.localhost',
@@ -67,7 +61,7 @@ resources = {'frontera' : {
 
 # ------------------------------------------------------------------------------
 #
-class RunTime:
+class RunTime(object):
     """Configure and manage the runtime environment."""
 
     # --------------------------------------------------------------------------
@@ -80,8 +74,8 @@ class RunTime:
         self._master  = None
         self._pilot   = None
 
-        self._log     = ru.Logger('brer.runner', level='DEBUG',
-                                                 targets=['.', '-'])
+        self._lock = ru.Lock()
+        self._log  = ru.Logger('brer.runner', level='DEBUG', targets=['.', '-'])
 
         self._resource_label = cfg.get('resource', 'localhost')
         self._resource       = ru.Config(cfg=resources[self._resource_label])
@@ -99,9 +93,10 @@ class RunTime:
     def stop(self) -> None:
 
         if self._session:
-            try   : self._session.close(download=True)
-            except: pass
-            self._session = None
+            with self._lock:
+                try   : self._session.close(download=True)
+                except: pass
+                self._session = None
 
 
     # --------------------------------------------------------------------------
@@ -125,7 +120,7 @@ class RunTime:
             self.stop()
 
         elif pilot.state == rp.DONE:
-            self._log.error('run context completed')
+            self._log.info('run context completed')
             self.stop()
 
 
@@ -150,7 +145,7 @@ class RunTime:
             self.stop()
 
         elif task.state == rp.DONE:
-            self._log.error('workload completed')
+            self._log.info('workload completed')
             self.stop()
 
 
@@ -186,16 +181,14 @@ class RunTime:
                 'git+https://github.com/SCALE-MS/run_brer.git@master',
                 'git+https://github.com/radical-cybertools/radical.pilot.git'
                          + '@project/scalems',
-              # 'gmxapi'
+                'gmxapi'
         ]
-        pre_exec = self._resource.master.pre_exec
 
         # NOTE: this will block until pilot is alive and venv exists
-        # TODO: pre_exec
         self._pilot.prepare_env(env_name='ve_brer',
                                 env_spec={'type'    : 'virtualenv',
                                           'version' : '3.8',
-                                          'pre_exec': pre_exec,
+                                          'pre_exec': self._resource.pre_exec,
                                           'setup'   : modules})
 
         self._resource.named_env = 've_brer'
@@ -215,9 +208,9 @@ class RunTime:
                 'config'  : self._cfg}
         ru.write_json(master_cfg, './config.json')
 
-        # TODO: stage input data
+        # submit master
         td = rp.TaskDescription(self._resource.master)
-        td.uid            = 'brer_master'
+        td.uid            = 'master.0000'
         td.named_env      = self._resource.named_env
         td.executable     = './brer_master.py'
         td.cpu_threads    = self._resource.cores_per_node
@@ -229,11 +222,12 @@ class RunTime:
         self._master = self._tmgr.submit_tasks(td)
         self._master.wait(state=[rp.AGENT_EXECUTING])
 
+        # submit workload as task to the master (`scheduler`)
         td = rp.TaskDescription()
-        td.uid            = 'brer_workload'
+        td.uid            = 'workload.0000'
         td.named_env      = self._resource.named_env
         td.executable     = '-'
-        td.scheduler      = 'brer_master'
+        td.scheduler      = 'master.0000'
         td.cpu_threads    = self._resource.cores_per_node
         td.arguments      = [json.dumps(workload.as_dict())]
         self._work = self._tmgr.submit_tasks(td)

@@ -59,13 +59,6 @@ class BrerMaster(rp.raptor.Master):
 
     # --------------------------------------------------------------------------
     #
-    def submit_tasks(self):
-
-        assert(False)
-
-
-    # --------------------------------------------------------------------------
-    #
     def request_cb(self, requests):
 
         for req in requests:
@@ -78,7 +71,7 @@ class BrerMaster(rp.raptor.Master):
             ensemble_size = workload.ensemble_size
             input         = workload.input
             pairs         = workload.pairs
-            workdir       = self._cfg.workdir
+            workdir       = self._cfg.config.workdir
 
             for idx in range(ensemble_size):
 
@@ -151,11 +144,8 @@ if __name__ == '__main__':
     master = BrerMaster(cfg)
 
     master.start()
-  # master.submit_tasks()
     master.join()
     master.stop()
-
-    # FIXME: clean up workers
 
 
 # ------------------------------------------------------------------------------
